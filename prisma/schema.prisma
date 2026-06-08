@@ -1,0 +1,107 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CollegeType {
+  GOVERNMENT
+  PRIVATE
+  DEEMED
+}
+
+model User {
+  id                String              @id @default(cuid())
+  name              String?
+  email             String              @unique
+  password          String?
+  createdAt         DateTime            @default(now())
+  savedColleges     SavedCollege[]
+  reviews           Review[]
+  comparisons       ComparisonHistory[]
+}
+
+model College {
+  id              String         @id @default(cuid())
+  name            String
+  location        String
+  city            String
+  state           String
+  type            CollegeType
+  establishedYear Int
+  description     String         @db.Text
+  website         String
+  logoUrl         String
+  overallRating   Float          @default(0)
+  totalReviews    Int            @default(0)
+  naacGrade       String?
+  createdAt       DateTime       @default(now())
+  courses         Course[]
+  placements      Placement[]
+  reviews         Review[]
+  savedBy         SavedCollege[]
+}
+
+model Course {
+  id         String   @id @default(cuid())
+  name       String
+  degree     String
+  duration   Int      // in years
+  totalFees  Float
+  annualFees Float
+  seats      Int
+  collegeId  String
+  college    College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model Placement {
+  id             String   @id @default(cuid())
+  year           Int
+  averagePackage Float
+  medianPackage  Float
+  highestPackage Float
+  placementRate  Float
+  topRecruiters  String[]
+  collegeId      String
+  college        College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  rating       Float
+  title        String
+  content      String   @db.Text
+  pros         String?  @db.Text
+  cons         String?  @db.Text
+  authorName   String
+  batch        String
+  course       String
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  collegeId    String
+  college      College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model SavedCollege {
+  id        String   @id @default(cuid())
+  userId    String
+  collegeId String
+  savedAt   DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, collegeId])
+}
+
+model ComparisonHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  collegeIds String[]
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
