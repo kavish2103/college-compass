@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/colleges/[id]
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
