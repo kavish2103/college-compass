@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Filters from '@/components/colleges/Filters';
 import CollegeCard from '@/components/colleges/CollegeCard';
 import CollegeCardSkeleton from '@/components/colleges/CollegeCardSkeleton';
@@ -34,14 +34,21 @@ interface College {
   }[];
 }
 
-export default function CollegeListingPage() {
+interface PaginationMeta {
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+}
+
+function CollegeListingContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // State
   const [colleges, setColleges] = useState<College[]>([]);
-  const [meta, setMeta] = useState<any>(null);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -203,5 +210,30 @@ export default function CollegeListingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CollegeListingPage() {
+  return (
+    <Suspense fallback={
+      <div className="py-2 md:py-6 space-y-8 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="border-b border-gray-100 pb-5 mb-8">
+          <div className="h-8 w-48 bg-gray-200 rounded-xl mb-2" />
+          <div className="h-4 w-64 bg-gray-100 rounded-xl" />
+        </div>
+        {/* Main Skeleton Grid */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+          <div className="h-96 bg-gray-100 rounded-2xl" />
+          <div className="lg:col-span-3 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-64 bg-gray-100 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
+      <CollegeListingContent />
+    </Suspense>
   );
 }

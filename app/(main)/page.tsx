@@ -1,94 +1,188 @@
 import Link from 'next/link';
+import prisma from '@/lib/prisma';
+import CollegeCard from '@/components/colleges/CollegeCard';
+import { CollegeType } from '@prisma/client';
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+interface CollegeCardData {
+  id: string;
+  name: string;
+  logoUrl: string;
+  location: string;
+  city: string;
+  state: string;
+  type: CollegeType;
+  establishedYear: number;
+  overallRating: number;
+  totalReviews: number;
+  naacGrade?: string | null;
+  courses: {
+    name: string;
+    degree: string;
+    totalFees: number;
+    annualFees: number;
+  }[];
+  placements: {
+    year: number;
+    averagePackage: number;
+    medianPackage: number;
+    highestPackage: number;
+  }[];
+}
+
+export default async function HomePage() {
+  // Fetch top 6 colleges by overallRating directly from the database
+  let featuredColleges: CollegeCardData[] = [];
+  let stats = { colleges: 0, cities: 0 };
+  try {
+    featuredColleges = await prisma.college.findMany({
+      orderBy: {
+        overallRating: 'desc',
+      },
+      take: 6,
+      include: {
+        courses: {
+          select: {
+            name: true,
+            degree: true,
+            totalFees: true,
+            annualFees: true,
+          },
+        },
+        placements: {
+          select: {
+            year: true,
+            averagePackage: true,
+            medianPackage: true,
+            highestPackage: true,
+          },
+          orderBy: {
+            year: 'desc',
+          },
+        },
+      },
+    });
+
+    const totalCollegesCount = await prisma.college.count();
+    const uniqueCities = await prisma.college.groupBy({
+      by: ['city'],
+    });
+
+    stats = {
+      colleges: totalCollegesCount,
+      cities: uniqueCities.length,
+    };
+  } catch (err) {
+    console.error('Failed to load featured colleges for Home Page:', err);
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-12 md:py-20 text-center">
-      <div className="max-w-3xl px-4">
-        <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 mb-6">
-          Internship Evaluation Project
-        </span>
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl">
-          Discover and Compare Your Dream College
-        </h1>
-        <p className="mt-6 text-lg leading-8 text-gray-600">
-          A clean, high-performance portal built for searching, comparing, and bookmarking Indian colleges (IITs, NITs, and other premier institutes). Explore placements, courses, and verified reviews.
-        </p>
+    <div className="space-y-16 md:space-y-24 py-8">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-3xl bg-slate-900 py-20 px-6 sm:px-12 lg:px-16 text-center shadow-xl">
+        {/* Decorative background grid */}
+        <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
         
-        {/* Quick actions */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+        {/* Gradient backdrop */}
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-600/30 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="relative max-w-3xl mx-auto space-y-6">
+          <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-400 ring-1 ring-inset ring-blue-500/20 mb-2 uppercase tracking-wider">
+            Discover Your Potential
+          </span>
+          <h1 className="text-4xl font-black tracking-tight text-white sm:text-6xl leading-tight">
+            Discover & Compare Your <span className="text-blue-400">Dream College</span>
+          </h1>
+          <p className="max-w-xl mx-auto text-base sm:text-lg text-slate-300 font-medium leading-relaxed">
+            Explore placement analytics, structured fee charts, and verified student reviews across 20+ premier Indian institutes.
+          </p>
+
+          {/* Search Form */}
+          <form action="/colleges" method="GET" className="max-w-lg mx-auto pt-4">
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                name="search"
+                required
+                placeholder="Search colleges by name, city, state..."
+                className="w-full rounded-2xl bg-white/10 border border-white/10 hover:border-white/20 focus:border-blue-500 focus:bg-white text-white focus:text-slate-800 placeholder-slate-400 px-5 py-4 pr-14 text-sm font-semibold shadow-inner transition-all outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                className="absolute right-2.5 p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-md focus:outline-none"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      {/* Quick Stats Section */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm hover:shadow-md transition-shadow">
+            <span className="block text-4xl font-extrabold text-blue-600 mb-1">
+              {stats.colleges > 0 ? `${stats.colleges}+` : '20+'}
+            </span>
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+              Premier Colleges
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm hover:shadow-md transition-shadow">
+            <span className="block text-4xl font-extrabold text-blue-600 mb-1">
+              {stats.cities > 0 ? `${stats.cities}+` : '10+'}
+            </span>
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+              Indian Cities
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm hover:shadow-md transition-shadow">
+            <span className="block text-4xl font-extrabold text-blue-600 mb-1">
+              3 Way
+            </span>
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+              Compare Side-by-Side
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Colleges Section */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-gray-900">Featured Colleges</h2>
+            <p className="mt-1 text-sm text-gray-500 font-semibold">
+              Highest rated universities shortlisted by student reviews and achievements.
+            </p>
+          </div>
           <Link
             href="/colleges"
-            className="rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
+            className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-1 group shrink-0"
           >
-            Explore Colleges
-          </Link>
-          <Link
-            href="/compare"
-            className="rounded-md border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
-          >
-            Compare side-by-side
+            Explore all colleges
+            <span className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true">&rarr;</span>
           </Link>
         </div>
-      </div>
 
-      {/* Feature Section Preview */}
-      <div className="mx-auto mt-20 max-w-7xl px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-base font-semibold leading-7 text-blue-600">Features Built in this Platform</h2>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Everything you need to find the right path
-          </p>
-        </div>
-        <div className="mx-auto mt-12 max-w-2xl sm:mt-16 lg:mt-20 lg:max-w-none">
-          <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-            <div className="flex flex-col">
-              <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                1. College Listing + Filters
-              </dt>
-              <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                <p className="flex-auto">
-                  Search through 20+ realistic Indian universities. Apply precise filters on course fees, locations, NAAC grade, and ratings with server-side pagination.
-                </p>
-                <p className="mt-6">
-                  <Link href="/colleges" className="text-sm font-semibold leading-6 text-blue-600 hover:text-blue-500">
-                    Go to Listings <span aria-hidden="true">&rarr;</span>
-                  </Link>
-                </p>
-              </dd>
-            </div>
-            <div className="flex flex-col">
-              <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                2. Side-by-side Comparisons
-              </dt>
-              <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                <p className="flex-auto">
-                  Compare up to 3 colleges side-by-side on metrics that matter: annual fees, average/median packages, established year, and rating scores.
-                </p>
-                <p className="mt-6">
-                  <Link href="/compare" className="text-sm font-semibold leading-6 text-blue-600 hover:text-blue-500">
-                    Compare now <span aria-hidden="true">&rarr;</span>
-                  </Link>
-                </p>
-              </dd>
-            </div>
-            <div className="flex flex-col">
-              <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                3. Bookmarks & Auth
-              </dt>
-              <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                <p className="flex-auto">
-                  Sign up via credentials or Google OAuth to save your shortlist. Saved colleges persist to your personal user account.
-                </p>
-                <p className="mt-6">
-                  <Link href="/saved" className="text-sm font-semibold leading-6 text-blue-600 hover:text-blue-500">
-                    View Shortlist <span aria-hidden="true">&rarr;</span>
-                  </Link>
-                </p>
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
+        {featuredColleges.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed p-16 text-center">
+            <p className="text-sm font-semibold text-gray-400">No college data loaded yet. Seed your database to get started.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredColleges.map((college) => (
+              <CollegeCard key={college.id} college={college} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

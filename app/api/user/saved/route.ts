@@ -22,12 +22,7 @@ export async function GET() {
       include: {
         college: {
           include: {
-            courses: {
-              select: {
-                degree: true,
-                totalFees: true,
-              },
-            },
+            courses: true,
             placements: {
               orderBy: { year: 'desc' },
               take: 1,

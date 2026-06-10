@@ -1,10 +1,24 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import ReviewForm from '@/components/colleges/ReviewForm';
 import { ApiResponsePayload } from '@/lib/utils';
+
+interface PaginationMeta {
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+}
+
+interface SavedCollegeItem {
+  id: string;
+  userId: string;
+  collegeId: string;
+  createdAt: string;
+}
 
 interface Course {
   id: string;
@@ -77,7 +91,7 @@ export default function CollegeDetailPage() {
   // Paginated Reviews State
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsPage, setReviewsPage] = useState(1);
-  const [reviewsMeta, setReviewsMeta] = useState<any>(null);
+  const [reviewsMeta, setReviewsMeta] = useState<PaginationMeta | null>(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Fetch base college data
@@ -113,7 +127,7 @@ export default function CollegeDetailPage() {
       if (!session) return;
       try {
         const res = await fetch('/api/user/saved');
-        const result: ApiResponsePayload<any[]> = await res.json();
+        const result: ApiResponsePayload<SavedCollegeItem[]> = await res.json();
         if (res.ok && result.data) {
           const alreadySaved = result.data.some((item) => item.collegeId === collegeId);
           setIsSaved(alreadySaved);
@@ -129,7 +143,7 @@ export default function CollegeDetailPage() {
   }, [sessionStatus, session, collegeId]);
 
   // Fetch paginated reviews whenever reviewsPage changes
-  const fetchPaginatedReviews = async (page: number) => {
+  const fetchPaginatedReviews = useCallback(async (page: number) => {
     setReviewsLoading(true);
     try {
       const res = await fetch(`/api/colleges/${collegeId}/reviews?page=${page}&limit=5`);
@@ -145,13 +159,13 @@ export default function CollegeDetailPage() {
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [collegeId]);
 
   useEffect(() => {
     if (activeTab === 'reviews' && collegeId) {
       fetchPaginatedReviews(1);
     }
-  }, [activeTab, collegeId]);
+  }, [activeTab, collegeId, fetchPaginatedReviews]);
 
   // Toggle Bookmark
   const handleToggleBookmark = async () => {
@@ -494,27 +508,30 @@ export default function CollegeDetailPage() {
                     ))}
 
                     {/* Reviews Pagination */}
-                    {reviewsMeta && reviewsMeta.totalPages > 1 && (
-                      <div className="flex items-center justify-between border-t border-gray-50 pt-5 text-sm font-medium">
-                        <button
-                          onClick={() => fetchPaginatedReviews(reviewsPage - 1)}
-                          disabled={reviewsPage <= 1 || reviewsLoading}
-                          className="rounded-xl border px-4 py-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          Previous Reviews
-                        </button>
-                        <span className="text-gray-500 font-semibold">
-                          Page {reviewsPage} of {reviewsMeta.totalPages}
-                        </span>
-                        <button
-                          onClick={() => fetchPaginatedReviews(reviewsPage + 1)}
-                          disabled={reviewsPage >= reviewsMeta.totalPages || reviewsLoading}
-                          className="rounded-xl border px-4 py-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          Next Reviews
-                        </button>
-                      </div>
-                    )}
+                    {(() => {
+                      const totalPages = reviewsMeta?.totalPages || 1;
+                      return reviewsMeta && totalPages > 1 ? (
+                        <div className="flex items-center justify-between border-t border-gray-50 pt-5 text-sm font-medium">
+                          <button
+                            onClick={() => fetchPaginatedReviews(reviewsPage - 1)}
+                            disabled={reviewsPage <= 1 || reviewsLoading}
+                            className="rounded-xl border px-4 py-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            Previous Reviews
+                          </button>
+                          <span className="text-gray-500 font-semibold">
+                            Page {reviewsPage} of {totalPages}
+                          </span>
+                          <button
+                            onClick={() => fetchPaginatedReviews(reviewsPage + 1)}
+                            disabled={reviewsPage >= totalPages || reviewsLoading}
+                            className="rounded-xl border px-4 py-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            Next Reviews
+                          </button>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 )}
               </div>
