@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import ReviewForm from '@/components/colleges/ReviewForm';
@@ -83,6 +83,7 @@ export default function CollegeDetailPage() {
   const [college, setCollege] = useState<CollegeDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isNotFound, setIsNotFound] = useState(false);
 
   // Bookmarks State
   const [isSaved, setIsSaved] = useState(false);
@@ -101,6 +102,12 @@ export default function CollegeDetailPage() {
       setError('');
       try {
         const res = await fetch(`/api/colleges/${collegeId}`);
+        
+        if (res.status === 404) {
+          setIsNotFound(true);
+          return;
+        }
+
         const result: ApiResponsePayload<CollegeDetails> = await res.json();
 
         if (!res.ok) {
@@ -212,6 +219,10 @@ export default function CollegeDetailPage() {
     // Reset page to 1 and re-fetch reviews list
     fetchPaginatedReviews(1);
   };
+
+  if (isNotFound) {
+    notFound();
+  }
 
   if (loading) {
     return (

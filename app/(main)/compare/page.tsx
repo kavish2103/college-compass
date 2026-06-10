@@ -143,9 +143,31 @@ function CompareContent() {
   // Render Loader
   if (loading) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center space-y-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        <p className="text-sm font-semibold text-gray-500">Comparing colleges...</p>
+      <div className="space-y-8 py-2 md:py-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-5 gap-4">
+          <div>
+            <div className="h-8 w-48 bg-gray-200 rounded-xl mb-2" />
+            <div className="h-4 w-64 bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+        {/* Table Skeleton */}
+        <div className="overflow-x-auto rounded-2xl border border-gray-150 shadow-sm bg-white">
+          <div className="p-6 space-y-6">
+            <div className="flex gap-6">
+              <div className="h-12 w-48 bg-gray-100 rounded-xl" />
+              <div className="h-12 w-64 bg-gray-200 rounded-xl" />
+              <div className="h-12 w-64 bg-gray-200 rounded-xl" />
+            </div>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex gap-6 border-t border-gray-50 pt-4">
+                <div className="h-6 w-48 bg-gray-100 rounded-xl" />
+                <div className="h-6 w-64 bg-gray-200 rounded-xl" />
+                <div className="h-6 w-64 bg-gray-200 rounded-xl" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
